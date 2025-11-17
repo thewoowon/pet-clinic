@@ -39,15 +39,13 @@ pipeline {
                 script {
                     sh '''
                         chmod +x gradlew
-                        export JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto
+                        export JAVA_HOME=/usr/lib/jvm/java-21-amazon-corretto
                         export PATH=$JAVA_HOME/bin:$PATH
                         java -version
 
-                        # Disable Gradle toolchain and use JAVA_HOME directly
+                        # Build with Java 21
                         ./gradlew clean bootJar -x test --no-daemon \
-                            -Dorg.gradle.java.home=$JAVA_HOME \
-                            -Porg.gradle.java.installations.auto-detect=false \
-                            -Porg.gradle.java.installations.auto-download=false
+                            -Dorg.gradle.java.home=$JAVA_HOME
 
                         echo "Build completed successfully!"
                     '''
