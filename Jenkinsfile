@@ -73,13 +73,11 @@ pipeline {
         stage('Login to ECR') {
             steps {
                 echo '========== Logging in to Amazon ECR =========='
-                withAWS(credentials: "${AWS_CREDENTIALS}", region: "${AWS_DEFAULT_REGION}") {
-                    script {
-                        sh """
-                            aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | \
-                            docker login --username AWS --password-stdin ${ECR_REGISTRY}
-                        """
-                    }
+                script {
+                    sh """
+                        aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | \
+                        docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                    """
                 }
             }
         }
@@ -87,30 +85,28 @@ pipeline {
         stage('Push to ECR') {
             steps {
                 echo '========== Pushing Images to ECR =========='
-                withAWS(credentials: "${AWS_CREDENTIALS}", region: "${AWS_DEFAULT_REGION}") {
-                    script {
-                        // Parallel push for faster deployment
-                        parallel(
-                            front: {
-                                sh """
-                                    docker push ${ECR_REGISTRY}/${ECR_REPO_FRONT}:${IMAGE_TAG}
-                                    docker push ${ECR_REGISTRY}/${ECR_REPO_FRONT}:latest
-                                """
-                            },
-                            back1: {
-                                sh """
-                                    docker push ${ECR_REGISTRY}/${ECR_REPO_BACK1}:${IMAGE_TAG}
-                                    docker push ${ECR_REGISTRY}/${ECR_REPO_BACK1}:latest
-                                """
-                            },
-                            back2: {
-                                sh """
-                                    docker push ${ECR_REGISTRY}/${ECR_REPO_BACK2}:${IMAGE_TAG}
-                                    docker push ${ECR_REGISTRY}/${ECR_REPO_BACK2}:latest
-                                """
-                            }
-                        )
-                    }
+                script {
+                    // Parallel push for faster deployment
+                    parallel(
+                        front: {
+                            sh """
+                                docker push ${ECR_REGISTRY}/${ECR_REPO_FRONT}:${IMAGE_TAG}
+                                docker push ${ECR_REGISTRY}/${ECR_REPO_FRONT}:latest
+                            """
+                        },
+                        back1: {
+                            sh """
+                                docker push ${ECR_REGISTRY}/${ECR_REPO_BACK1}:${IMAGE_TAG}
+                                docker push ${ECR_REGISTRY}/${ECR_REPO_BACK1}:latest
+                            """
+                        },
+                        back2: {
+                            sh """
+                                docker push ${ECR_REGISTRY}/${ECR_REPO_BACK2}:${IMAGE_TAG}
+                                docker push ${ECR_REGISTRY}/${ECR_REPO_BACK2}:latest
+                            """
+                        }
+                    )
                 }
             }
         }
@@ -118,39 +114,37 @@ pipeline {
         stage('Deploy to ECS') {
             steps {
                 echo '========== Deploying Services to ECS =========='
-                withAWS(credentials: "${AWS_CREDENTIALS}", region: "${AWS_DEFAULT_REGION}") {
-                    script {
-                        // Parallel deployment for faster rollout
-                        parallel(
-                            front: {
-                                sh """
-                                    aws ecs update-service \
-                                        --cluster ${ECS_CLUSTER} \
-                                        --service ${ECS_SERVICE_FRONT} \
-                                        --force-new-deployment \
-                                        --region ${AWS_DEFAULT_REGION}
-                                """
-                            },
-                            back1: {
-                                sh """
-                                    aws ecs update-service \
-                                        --cluster ${ECS_CLUSTER} \
-                                        --service ${ECS_SERVICE_BACK1} \
-                                        --force-new-deployment \
-                                        --region ${AWS_DEFAULT_REGION}
-                                """
-                            },
-                            back2: {
-                                sh """
-                                    aws ecs update-service \
-                                        --cluster ${ECS_CLUSTER} \
-                                        --service ${ECS_SERVICE_BACK2} \
-                                        --force-new-deployment \
-                                        --region ${AWS_DEFAULT_REGION}
-                                """
-                            }
-                        )
-                    }
+                script {
+                    // Parallel deployment for faster rollout
+                    parallel(
+                        front: {
+                            sh """
+                                aws ecs update-service \
+                                    --cluster ${ECS_CLUSTER} \
+                                    --service ${ECS_SERVICE_FRONT} \
+                                    --force-new-deployment \
+                                    --region ${AWS_DEFAULT_REGION}
+                            """
+                        },
+                        back1: {
+                            sh """
+                                aws ecs update-service \
+                                    --cluster ${ECS_CLUSTER} \
+                                    --service ${ECS_SERVICE_BACK1} \
+                                    --force-new-deployment \
+                                    --region ${AWS_DEFAULT_REGION}
+                            """
+                        },
+                        back2: {
+                            sh """
+                                aws ecs update-service \
+                                    --cluster ${ECS_CLUSTER} \
+                                    --service ${ECS_SERVICE_BACK2} \
+                                    --force-new-deployment \
+                                    --region ${AWS_DEFAULT_REGION}
+                            """
+                        }
+                    )
                 }
             }
         }
@@ -158,17 +152,15 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 echo '========== Verifying ECS Deployment =========='
-                withAWS(credentials: "${AWS_CREDENTIALS}", region: "${AWS_DEFAULT_REGION}") {
-                    script {
-                        sh """
-                            echo "Waiting for services to stabilize..."
-                            aws ecs wait services-stable \
-                                --cluster ${ECS_CLUSTER} \
-                                --services ${ECS_SERVICE_FRONT} ${ECS_SERVICE_BACK1} ${ECS_SERVICE_BACK2} \
-                                --region ${AWS_DEFAULT_REGION}
-                            echo "All services are stable!"
-                        """
-                    }
+                script {
+                    sh """
+                        echo "Waiting for services to stabilize..."
+                        aws ecs wait services-stable \
+                            --cluster ${ECS_CLUSTER} \
+                            --services ${ECS_SERVICE_FRONT} ${ECS_SERVICE_BACK1} ${ECS_SERVICE_BACK2} \
+                            --region ${AWS_DEFAULT_REGION}
+                        echo "All services are stable!"
+                    """
                 }
             }
         }
