@@ -42,7 +42,13 @@ pipeline {
                         export JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto
                         export PATH=$JAVA_HOME/bin:$PATH
                         java -version
-                        ./gradlew clean bootJar -x test --no-daemon -Dorg.gradle.java.home=$JAVA_HOME
+
+                        # Disable Gradle toolchain and use JAVA_HOME directly
+                        ./gradlew clean bootJar -x test --no-daemon \
+                            -Dorg.gradle.java.home=$JAVA_HOME \
+                            -Porg.gradle.java.installations.auto-detect=false \
+                            -Porg.gradle.java.installations.auto-download=false
+
                         echo "Build completed successfully!"
                     '''
                 }

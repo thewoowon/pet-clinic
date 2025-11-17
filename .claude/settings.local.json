@@ -24,7 +24,10 @@
       "Bash(echo:*)",
       "Bash(aws ecs register-task-definition:*)",
       "Bash(done)",
-      "Bash(__NEW_LINE__ for service in front back1 back2)"
+      "Bash(__NEW_LINE__ for service in front back1 back2)",
+      "Bash(aws ec2 create-key-pair:*)",
+      "Bash(/tmp/jenkins-key.pem)",
+      "Bash(__NEW_LINE__ chmod 400 /tmp/jenkins-key.pem)"
     ],
     "deny": [],
     "ask": []
