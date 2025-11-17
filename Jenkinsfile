@@ -29,7 +29,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo '========== Git Checkout =========='
-                git branch: 'main', url: 'https://github.com/fkeldh0806-beep/spring-petclinic.git'
+                git branch: 'main', url: 'https://github.com/thewoowon/pet-clinic.git'
             }
         }
 
