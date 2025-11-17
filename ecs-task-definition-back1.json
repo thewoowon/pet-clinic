@@ -1,7 +1,9 @@
 {
   "family": "petclinic-back1-task",
   "networkMode": "awsvpc",
-  "requiresCompatibilities": ["FARGATE"],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
   "cpu": "512",
   "memory": "1024",
   "executionRoleArn": "arn:aws:iam::205922933402:role/ecsTaskExecutionRole",
@@ -17,26 +19,7 @@
           "protocol": "tcp"
         }
       ],
-      "environment": [
-        {
-          "name": "SPRING_PROFILES_ACTIVE",
-          "value": "prod"
-        }
-      ],
-      "secrets": [
-        {
-          "name": "DB_URL",
-          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:205922933402:secret:petclinic/db/url"
-        },
-        {
-          "name": "DB_USERNAME",
-          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:205922933402:secret:petclinic/db/username"
-        },
-        {
-          "name": "DB_PASSWORD",
-          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:205922933402:secret:petclinic/db/password"
-        }
-      ],
+      "environment": [],
       "healthCheck": {
         "command": [
           "CMD-SHELL",
