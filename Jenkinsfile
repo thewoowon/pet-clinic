@@ -39,7 +39,10 @@ pipeline {
                 script {
                     sh '''
                         chmod +x gradlew
-                        ./gradlew clean bootJar -x test --no-daemon
+                        export JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto
+                        export PATH=$JAVA_HOME/bin:$PATH
+                        java -version
+                        ./gradlew clean bootJar -x test --no-daemon -Dorg.gradle.java.home=$JAVA_HOME
                         echo "Build completed successfully!"
                     '''
                 }
