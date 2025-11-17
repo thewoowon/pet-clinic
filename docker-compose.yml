@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database (RDS 대용)
+  postgres:
+    image: postgres:18.0
+    container_name: petclinic-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=petclinic
+      - POSTGRES_USER=petclinic
+      - POSTGRES_DB=petclinic
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U petclinic"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - petclinic-network
+
+  # MySQL Database (옵션)
+  mysql:
+    image: mysql:9.2
+    container_name: petclinic-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true
+      - MYSQL_USER=petclinic
+      - MYSQL_PASSWORD=petclinic
+      - MYSQL_DATABASE=petclinic
+    volumes:
+      - "./conf.d:/etc/mysql/conf.d:ro"
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - petclinic-network
+
+  # Front Service (포트 8080)
+  front:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: petclinic-front
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - DB_URL=jdbc:postgresql://postgres:5432/petclinic
+      - DB_USERNAME=petclinic
+      - DB_PASSWORD=petclinic
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - petclinic-network
+    restart: unless-stopped
+
+  # Back1 Service (포트 8081)
+  back1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: petclinic-back1
+    ports:
+      - "8081:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - DB_URL=jdbc:postgresql://postgres:5432/petclinic
+      - DB_USERNAME=petclinic
+      - DB_PASSWORD=petclinic
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - petclinic-network
+    restart: unless-stopped
+
+  # Back2 Service (포트 8082)
+  back2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: petclinic-back2
+    ports:
+      - "8082:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - DB_URL=jdbc:postgresql://postgres:5432/petclinic
+      - DB_USERNAME=petclinic
+      - DB_PASSWORD=petclinic
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - petclinic-network
+    restart: unless-stopped
+
+networks:
+  petclinic-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  mysql_data:

@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(chmod:*)",
+      "Bash(docker:*)",
+      "Bash(docker-compose:*)",
+      "Bash(./gradlew bootJar:*)",
+      "Bash(curl:*)",
+      "Bash(./scripts/check-aws-resources.sh:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

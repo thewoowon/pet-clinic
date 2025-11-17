@@ -1,0 +1,124 @@
+name: Deploy to AWS ECS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # 수동 실행 허용
+
+env:
+  AWS_REGION: ap-northeast-2
+  AWS_ACCOUNT_ID: 205922933402
+  ECR_REGISTRY: 205922933402.dkr.ecr.ap-northeast-2.amazonaws.com
+  ECS_CLUSTER: petclinic-cluster
+  IMAGE_TAG: ${{ github.run_number }}
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy to ECS
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write # OIDC 인증용 (선택사항)
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: 🔧 Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: 🏗️ Build with Gradle
+        run: ./gradlew clean bootJar -x test --no-daemon
+
+      - name: 🔑 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 🔐 Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: 🐳 Build Docker Image
+        run: |
+          docker build -t ${{ env.ECR_REGISTRY }}/front:${{ env.IMAGE_TAG }} .
+          docker tag ${{ env.ECR_REGISTRY }}/front:${{ env.IMAGE_TAG }} ${{ env.ECR_REGISTRY }}/front:latest
+          docker tag ${{ env.ECR_REGISTRY }}/front:${{ env.IMAGE_TAG }} ${{ env.ECR_REGISTRY }}/back1:${{ env.IMAGE_TAG }}
+          docker tag ${{ env.ECR_REGISTRY }}/front:${{ env.IMAGE_TAG }} ${{ env.ECR_REGISTRY }}/back1:latest
+          docker tag ${{ env.ECR_REGISTRY }}/front:${{ env.IMAGE_TAG }} ${{ env.ECR_REGISTRY }}/back2:${{ env.IMAGE_TAG }}
+          docker tag ${{ env.ECR_REGISTRY }}/front:${{ env.IMAGE_TAG }} ${{ env.ECR_REGISTRY }}/back2:latest
+
+      - name: 📤 Push Images to ECR
+        run: |
+          echo "Pushing front images..."
+          docker push ${{ env.ECR_REGISTRY }}/front:${{ env.IMAGE_TAG }}
+          docker push ${{ env.ECR_REGISTRY }}/front:latest
+
+          echo "Pushing back1 images..."
+          docker push ${{ env.ECR_REGISTRY }}/back1:${{ env.IMAGE_TAG }}
+          docker push ${{ env.ECR_REGISTRY }}/back1:latest
+
+          echo "Pushing back2 images..."
+          docker push ${{ env.ECR_REGISTRY }}/back2:${{ env.IMAGE_TAG }}
+          docker push ${{ env.ECR_REGISTRY }}/back2:latest
+
+      - name: 🚀 Deploy to ECS - Front Service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service front-service \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      - name: 🚀 Deploy to ECS - Back1 Service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service back1-service \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      - name: 🚀 Deploy to ECS - Back2 Service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service back2-service \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      - name: ⏳ Wait for services to stabilize
+        run: |
+          echo "Waiting for services to stabilize..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services front-service back1-service back2-service \
+            --region ${{ env.AWS_REGION }}
+          echo "All services are stable!"
+
+      - name: ✅ Deployment Summary
+        run: |
+          echo "========================================="
+          echo "Deployment Completed Successfully!"
+          echo "========================================="
+          echo "Image Tag: ${{ env.IMAGE_TAG }}"
+          echo ""
+          echo "Deployed Images:"
+          echo "  - ${{ env.ECR_REGISTRY }}/front:${{ env.IMAGE_TAG }}"
+          echo "  - ${{ env.ECR_REGISTRY }}/back1:${{ env.IMAGE_TAG }}"
+          echo "  - ${{ env.ECR_REGISTRY }}/back2:${{ env.IMAGE_TAG }}"
+          echo ""
+          echo "ECS Services Updated:"
+          echo "  - front-service"
+          echo "  - back1-service"
+          echo "  - back2-service"
